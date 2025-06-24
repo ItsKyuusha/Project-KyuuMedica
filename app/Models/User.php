@@ -18,9 +18,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+        'nama', 'email', 'password', 'role', 'alamat', 'no_hp'
     ];
 
     /**
@@ -29,8 +27,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
-        'password',
-        'remember_token',
+        'password', 'remember_token',
     ];
 
     /**
@@ -45,4 +42,19 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function dokter()
+    {
+        return $this->hasOne(Dokter::class);
+    }
+
+    // App\Models\User.php
+
+    public function pasien()
+    {
+        return $this->hasMany(Pasien::class);  // Satu user bisa memiliki banyak pasien
+    }
+
+
+    
 }

@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Models\Pasien;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -44,14 +46,34 @@ class AuthController extends Controller
             'name' => 'required',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:5|confirmed',
-            'role' => 'required|in:admin,dokter,pasien'
+            'role' => 'required|in:pasien', // hanya pasien yang bisa daftar mandiri
+            'alamat' => 'required',
+            'no_ktp' => 'required|unique:users,no_ktp',
+            'no_hp' => 'required'
         ]);
 
-        User::create([
-            'name' => $request->name,
+        // Generate no_rm: contoh "202506-001"
+        $prefix = now()->format('Ym');
+        $count = Pasien::where('no_rm', 'like', $prefix . '%')->count();
+        $no_rm = $prefix . '-' . ($count + 1);
+
+        $user = User::create([
+            'nama' => $request->name,
             'email' => $request->email,
-            'role' => $request->role,
+            'role' => 'pasien',
             'password' => Hash::make($request->password),
+            'alamat' => $request->alamat,
+            'no_ktp' => $request->no_ktp,
+            'no_hp' => $request->no_hp,
+            'no_rm' => $no_rm,
+        ]);
+
+        Pasien::create([
+            'nama' => $request->name,
+            'alamat' => $request->alamat,
+            'no_ktp' => $request->no_ktp,
+            'no_hp' => $request->no_hp,
+            'no_rm' => $no_rm,
         ]);
 
         return redirect()->route('login')->with('success', 'Akun berhasil dibuat!');

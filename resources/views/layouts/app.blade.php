@@ -39,7 +39,7 @@
       <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 d-flex align-items-center" data-toggle="modal" data-target="#logoutModal">
         <i class="fas fa-user mr-2"></i>
         <span>
-          {{ Auth::user()->name ?? 'Guest' }} 
+          {{ Auth::user()->nama ?? 'Guest' }} 
           ({{ Auth::user()->role ?? 'No Role' }})
         </span>
         <i class="fas fa-sign-out-alt ml-2"></i>
@@ -65,6 +65,30 @@
             <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
               <i class="nav-icon fas fa-home"></i>
               <p>Dashboard Admin</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{{ route('admin.dokter') }}" class="nav-link {{ request()->routeIs('admin.dokter') ? 'active' : '' }}">
+              <i class="nav-icon fas fa-user-md"></i>
+              <p>Manage Dokter</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{{ route('admin.pasien') }}" class="nav-link {{ request()->routeIs('admin.pasien') ? 'active' : '' }}">
+              <i class="nav-icon fas fa-procedures"></i>
+              <p>Manage Pasien</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{{ route('admin.poli') }}" class="nav-link {{ request()->routeIs('admin.poli') ? 'active' : '' }}">
+              <i class="nav-icon fas fa-clinic-medical"></i>
+              <p>Manage Poli</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{{ route('admin.obat') }}" class="nav-link {{ request()->routeIs('admin.obat') ? 'active' : '' }}">
+              <i class="nav-icon fas fa-pills"></i>
+              <p>Manage Obat</p>
             </a>
           </li>
           @endif
