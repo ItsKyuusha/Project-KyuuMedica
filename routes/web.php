@@ -7,12 +7,13 @@ use App\Http\Controllers\Admin\DokterController;
 use App\Http\Controllers\Admin\PasienController;
 use App\Http\Controllers\Admin\PoliController;
 use App\Http\Controllers\Admin\ObatController;
+use App\Http\Controllers\Dokter\DashboardController as DokterDashboardController;
 use App\Http\Controllers\Dokter\ProfilController;
 use App\Http\Controllers\Dokter\JadwalPeriksaController;
 use App\Http\Controllers\Dokter\PemeriksaanController;
 use App\Http\Controllers\Dokter\RiwayatPasienController;
+use App\Http\Controllers\Pasien\DashboardController as PasienDashboardController;
 use App\Http\Controllers\Pasien\DaftarPoliController;
-use App\Http\Controllers\Pasien\RiwayatController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -26,7 +27,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Route untuk Admin
-Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
     
     // Dashboard Admin
     Route::get('/dashboard', [AdminDashboardController::class, 'dashboardAdmin'])->name('dashboard');
@@ -61,39 +62,55 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
 });
 
 // Route untuk Dokter
-Route::prefix('dokter')->name('dokter.')->middleware('auth')->group(function () {
+Route::prefix('dokter')->name('dokter.')->middleware(['auth', 'role:dokter'])->group(function () {
 
-    // Profil dokter
-    Route::get('/profil/{id}', [ProfilController::class, 'show'])->name('profil.show');
-    Route::put('/profil/{id}', [ProfilController::class, 'update'])->name('profil.update');
+    // Dashboard Dokter (opsional, misal hanya untuk tampilan utama dokter)
+    Route::get('/dashboard', [DokterDashboardController::class, 'dashboard'])->name('dashboard');
 
-    // Jadwal periksa
-    Route::get('/jadwal', [JadwalPeriksaController::class, 'index'])->name('jadwal.index');
+    // Jadwal Periksa
+    Route::get('/jadwal', [JadwalPeriksaController::class, 'index'])->name('jadwal');
     Route::post('/jadwal', [JadwalPeriksaController::class, 'store'])->name('jadwal.store');
+    Route::put('/jadwal/{id}', [JadwalPeriksaController::class, 'update'])->name('jadwal.update');
+    Route::delete('/jadwal/{id}', [JadwalPeriksaController::class, 'destroy'])->name('jadwal.destroy');
 
-    // Pemeriksaan pasien
-    Route::post('/periksa', [PemeriksaanController::class, 'store'])->name('periksa.store');
-    Route::get('/periksa/{id_daftar_poli}', [PemeriksaanController::class, 'show'])->name('periksa.show');
+    // Pemeriksaan Pasien
+    // Menampilkan daftar pasien yang mendaftar hari ini
+    Route::get('/jadwal/hari-ini', [PemeriksaanController::class, 'hariIni'])->name('jadwal.hari_ini');
+    Route::post('/jadwal/hari_ini/skip/{id}', [PemeriksaanController::class, 'skipAntrian'])->name('jadwal.skip');
 
-    // Riwayat pasien
-    Route::get('/riwayat/{id_pasien}', [RiwayatPasienController::class, 'index'])->name('riwayat.index');
+
+    // Menampilkan form pemeriksaan pasien
+    Route::get('/pemeriksaan/{id_daftar_poli}', [PemeriksaanController::class, 'show'])->name('pemeriksaan.show');
+
+    // Menyimpan hasil pemeriksaan
+    Route::post('/pemeriksaan', [PemeriksaanController::class, 'store'])->name('pemeriksaan.store');
+
+    // Menampilkan detail pemeriksaan
+    Route::get('/pemeriksaan/detail/{id_daftar_poli}', [PemeriksaanController::class, 'detail'])->name('pemeriksaan.detail');
+
+    //profil
+    Route::get('/profil', [ProfilController::class, 'show'])->name('profil');
+    Route::post('/profil/update', [ProfilController::class, 'update'])->name('profil.update');
 });
 
 // Route untuk Pasien
-Route::prefix('pasien')->name('pasien.')->middleware('auth')->group(function () {
+Route::prefix('pasien')->name('pasien.')->middleware(['auth', 'role:pasien'])->group(function () {
 
-    // Melihat daftar jadwal poli (dokter & jadwal)
-    Route::get('/jadwal', [DaftarPoliController::class, 'index'])->name('jadwal.index');
+    // Dashboard Pasien
+    Route::get('/dashboard', [PasienDashboardController::class, 'dashboard'])->name('dashboard');
 
-    // Mendaftar ke poli
-    Route::post('/daftar', [DaftarPoliController::class, 'store'])->name('daftar.store');
+    // Tampilkan semua jadwal periksa
+    Route::get('/jadwal', [DaftarPoliController::class, 'getAllJadwal'])->name('jadwal.semua');
 
-    // Mengetahui jumlah antrian di jadwal tertentu
-    Route::get('/antrian/{id_jadwal}', [DaftarPoliController::class, 'antrian'])->name('antrian');
+    // Tampilkan jadwal berdasarkan poli tertentu
+    Route::get('/jadwal/{id_poli}', [DaftarPoliController::class, 'getJadwalByPoli'])->name('jadwal');
 
-    // Riwayat pemeriksaan pasien
-    Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat.index');
+    // Form daftar ke poli
+    Route::get('/daftar', [DaftarPoliController::class, 'showForm'])->name('daftar');
 
-    // Detail satu pemeriksaan
-    Route::get('/riwayat/{id_periksa}', [RiwayatController::class, 'show'])->name('riwayat.show');
+    // Proses daftar ke poli
+    Route::post('/daftar', [DaftarPoliController::class, 'daftar'])->name('daftar.store');
+
+    // Antrian hari ini (untuk jadwal tertentu)
+    Route::get('/antrian/{id_jadwal}', [DaftarPoliController::class, 'getAntrianHariIni'])->name('antrian');
 });

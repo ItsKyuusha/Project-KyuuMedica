@@ -44,11 +44,27 @@
       </a>
     </a>
   </div>
-
   <!-- /.login-logo -->
   <div class="card">
     <div class="card-body login-card-body">
       <p class="login-box-msg">Sign in to start your session</p>
+
+      <!-- Displaying Success or Error Message -->
+      @if(session('success'))
+        <div class="alert alert-success">
+          {{ session('success') }}
+        </div>
+      @endif
+
+      @if($errors->any())
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+              <li>{{ $error }}</li>
+            @endforeach
+          </ul>
+        </div>
+      @endif
 
       <form action="{{ route('login') }}" method="POST">
         @csrf
@@ -86,7 +102,6 @@
         </div>
       </form>
 
-      
       <p class="mb-0">
         <a href="register" class="text-center">Register a new membership</a>
       </p>

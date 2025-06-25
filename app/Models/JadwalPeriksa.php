@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class JadwalPeriksa extends Model
 {
-    protected $fillable = ['id_dokter', 'hari', 'jam_mulai', 'jam_selesai'];
+    protected $fillable = ['id_dokter', 'hari', 'jam_mulai', 'jam_selesai', 'status'];
 
     public function dokter()
     {
@@ -17,5 +17,11 @@ class JadwalPeriksa extends Model
     {
         return $this->hasMany(DaftarPoli::class, 'id_jadwal');
     }
+
+    public function poli()
+{
+    return $this->belongsTo(Poli::class, 'id_poli'); // Contoh relasi, sesuaikan dengan kolom FK-nya
+}
+
 }
 

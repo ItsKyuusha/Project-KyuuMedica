@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Dokter extends Model
 {
-    protected $fillable = ['nama', 'alamat', 'no_hp', 'id_poli'];
+    protected $fillable = ['user_id','nama', 'alamat', 'no_hp', 'id_poli'];
 
     public function poli()
     {

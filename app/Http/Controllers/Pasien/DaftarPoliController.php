@@ -9,32 +9,62 @@ use Illuminate\Http\Request;
 
 class DaftarPoliController extends Controller
 {
-    public function getJadwalByPoli($id_poli)
+    // Semua jadwal (aktif + nonaktif) untuk halaman jadwal
+    public function getAllJadwal()
     {
-        return JadwalPeriksa::with('dokter')
-            ->whereHas('dokter', fn($q) => $q->where('id_poli', $id_poli))
-            ->get();
+        $jadwals = JadwalPeriksa::with('dokter.poli')->get();  // tanpa filter status
+        return view('pasien.jadwal', compact('jadwals'));
+    }
+    
+    // Tampilkan halaman daftar jadwal & status pendaftaran pasien hari ini
+    public function showForm()
+    {
+        $pasien = auth()->user()->pasien;
+
+        if (!$pasien) {
+            return redirect()->route('pasien.dashboard')
+                ->withErrors(['message' => 'Data pasien belum lengkap, silakan hubungi admin.']);
+        }
+
+        // Ambil jadwal aktif
+        $jadwals = JadwalPeriksa::with('dokter.poli')->where('status', 'aktif')->get();
+
+        return view('pasien.daftar', compact('jadwals', 'pasien'));
     }
 
+    // Proses pendaftaran pasien
     public function daftar(Request $request)
     {
+        $pasien = auth()->user()->pasien;
+
+        if (!$pasien) {
+            return redirect()->back()->withErrors(['message' => 'Data pasien tidak ditemukan.']);
+        }
+
         $request->validate([
-            'id_pasien' => 'required|exists:pasiens,id',
             'id_jadwal' => 'required|exists:jadwal_periksas,id',
-            'keluhan' => 'nullable|string'
+            'keluhan' => 'nullable|string|max:255'
         ]);
 
-        $daftar = DaftarPoli::create($request->all());
-        return response()->json(['message' => 'Pendaftaran berhasil', 'data' => $daftar]);
-    }
-
-    public function getAntrianHariIni($id_jadwal)
-    {
-        $jumlah = DaftarPoli::where('id_jadwal', $id_jadwal)
+        // Cek sudah daftar hari ini untuk jadwal itu
+        $sudahDaftar = DaftarPoli::where('id_pasien', $pasien->id)
+            ->where('id_jadwal', $request->id_jadwal)
             ->whereDate('created_at', now()->toDateString())
-            ->count();
+            ->first();
 
-        return response()->json(['antrian' => $jumlah + 1]);
+        if ($sudahDaftar) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['message' => 'Anda sudah mendaftar hari ini pada jadwal tersebut.'])
+                ->with('last_modal_id', $request->id_jadwal);
+        }
+
+        DaftarPoli::create([
+            'id_pasien' => $pasien->id,
+            'id_jadwal' => $request->id_jadwal,
+            'keluhan' => $request->keluhan,
+        ]);
+
+        return redirect()->route('pasien.daftar')->with('success', 'Pendaftaran berhasil.');
     }
 }
-

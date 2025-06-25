@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('hari', 50);
             $table->time('jam_mulai');
             $table->time('jam_selesai');
+            $table->enum('status', ['aktif', 'nonaktif'])->default('nonaktif');
             $table->timestamps();
         });
     }

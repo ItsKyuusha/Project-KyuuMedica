@@ -5,25 +5,165 @@ namespace App\Http\Controllers\Dokter;
 use App\Http\Controllers\Controller;
 use App\Models\JadwalPeriksa;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;  // Import Log
+use Carbon\Carbon;
 
 class JadwalPeriksaController extends Controller
 {
-    public function index($dokter_id)
+    private static $daftarHari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
+    private function isHariHPeriksaAktif($dokter)
     {
-        return JadwalPeriksa::where('id_dokter', $dokter_id)->get();
+        $hariIni = Carbon::now()->locale('id')->isoFormat('dddd');
+
+        Log::debug('Memeriksa apakah hari ini adalah hari H periksa aktif untuk dokter: ' . $dokter->id);
+
+        $jadwalAktifHariIni = JadwalPeriksa::where('id_dokter', $dokter->id)
+            ->where('status', 'aktif')
+            ->whereRaw('LOWER(hari) = ?', [strtolower($hariIni)])
+            ->first();
+
+        if ($jadwalAktifHariIni) {
+            Log::debug('Jadwal aktif hari ini ditemukan: ' . $jadwalAktifHariIni);
+        } else {
+            Log::debug('Tidak ada jadwal aktif untuk hari ini.');
+        }
+
+        return $jadwalAktifHariIni !== null;
     }
+
+public function index()
+{
+    $dokter = Auth::user()->dokter;
+
+    if (!$dokter) {
+        return redirect()->back()->with('error', 'Akun ini belum dikaitkan dengan data dokter.');
+    }
+
+    $jadwals = JadwalPeriksa::where('id_dokter', $dokter->id)
+        ->orderByRaw("FIELD(hari, '" . implode("','", self::$daftarHari) . "')")
+        ->get();
+
+    $hariIni = Carbon::now()->locale('id')->isoFormat('dddd');
+    $isHariH = $this->isHariHPeriksaAktif($dokter);
+
+    // Add $daftarHari to the view data
+    $daftarHari = self::$daftarHari;
+
+    return view('dokter.jadwal', compact('jadwals', 'isHariH', 'hariIni', 'daftarHari'));
+}
+
 
     public function store(Request $request)
     {
+        $dokter = Auth::user()->dokter;
+
+        if (!$dokter) {
+            Log::error('Akun ini belum dikaitkan dengan data dokter.');
+            return redirect()->back()->with('error', 'Akun ini belum dikaitkan dengan data dokter.');
+        }
+
+        Log::debug('Menyimpan jadwal baru untuk dokter dengan ID: ' . $dokter->id);
+
+        // Validasi data
         $request->validate([
-            'id_dokter' => 'required|exists:dokters,id',
-            'hari' => 'required|string',
+            'hari' => 'required|string|in:' . implode(',', self::$daftarHari),
             'jam_mulai' => 'required|date_format:H:i',
             'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+            'status' => 'required|in:aktif,nonaktif',
         ]);
 
-        // Validasi bentrok waktu bisa ditambahkan di sini (opsional)
+        // Jika status aktif, nonaktifkan jadwal lain
+        if ($request->status === 'aktif') {
+            Log::debug('Menonaktifkan jadwal lain sebelum menambah jadwal aktif.');
+            JadwalPeriksa::where('id_dokter', $dokter->id)->update(['status' => 'nonaktif']);
+        }
 
-        return JadwalPeriksa::create($request->all());
+        JadwalPeriksa::create([
+            'id_dokter' => $dokter->id,
+            'hari' => ucfirst(strtolower($request->hari)),
+            'jam_mulai' => $request->jam_mulai,
+            'jam_selesai' => $request->jam_selesai,
+            'status' => $request->status,
+        ]);
+
+        Log::info('Jadwal berhasil ditambahkan untuk dokter ID: ' . $dokter->id);
+
+        return redirect()->route('dokter.jadwal')->with('success', 'Jadwal berhasil ditambahkan.');
+    }
+
+    public function update(Request $request, $id)
+    {
+        $dokter = Auth::user()->dokter;
+
+        if (!$dokter) {
+            Log::error('Akun ini belum dikaitkan dengan data dokter.');
+            return redirect()->back()->with('error', 'Akun ini belum dikaitkan dengan data dokter.');
+        }
+
+        $jadwal = JadwalPeriksa::findOrFail($id);
+
+        if ($jadwal->id_dokter != $dokter->id) {
+            Log::warning('Dokter mencoba mengakses jadwal yang bukan miliknya.');
+            abort(403, 'Akses tidak diizinkan.');
+        }
+
+        Log::debug('Memperbarui jadwal dengan ID: ' . $id);
+
+        // Validasi data
+        $request->validate([
+            'hari' => 'required|string|in:' . implode(',', self::$daftarHari),
+            'jam_mulai' => 'required|date_format:H:i',
+            'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+            'status' => 'required|in:aktif,nonaktif',
+        ]);
+
+        // Jika status aktif, nonaktifkan jadwal lain
+        if ($request->status === 'aktif') {
+            Log::debug('Menonaktifkan jadwal lain sebelum memperbarui jadwal aktif.');
+            JadwalPeriksa::where('id_dokter', $dokter->id)->update(['status' => 'nonaktif']);
+        }
+
+        $jadwal->update([
+            'hari' => ucfirst(strtolower($request->hari)),
+            'jam_mulai' => $request->jam_mulai,
+            'jam_selesai' => $request->jam_selesai,
+            'status' => $request->status,
+        ]);
+
+        Log::info('Jadwal dengan ID ' . $id . ' berhasil diperbarui.');
+
+        return redirect()->route('dokter.jadwal')->with('success', 'Jadwal berhasil diperbarui.');
+    }
+
+    public function destroy($id)
+    {
+        $dokter = Auth::user()->dokter;
+
+        if (!$dokter) {
+            Log::error('Akun ini belum dikaitkan dengan data dokter.');
+            return redirect()->back()->with('error', 'Akun ini belum dikaitkan dengan data dokter.');
+        }
+
+        $jadwal = JadwalPeriksa::findOrFail($id);
+
+        if ($jadwal->id_dokter != $dokter->id) {
+            Log::warning('Dokter mencoba mengakses jadwal yang bukan miliknya.');
+            abort(403, 'Akses tidak diizinkan.');
+        }
+
+        $hariIni = Carbon::now()->locale('id')->isoFormat('dddd');
+
+        if ($jadwal->status == 'aktif' && strtolower($jadwal->hari) === strtolower($hariIni)) {
+            Log::warning('Jadwal aktif hari ini tidak dapat dihapus: ' . $jadwal->id);
+            return redirect()->route('dokter.jadwal')->with('error', 'Jadwal aktif hari ini tidak dapat dihapus.');
+        }
+
+        $jadwal->delete();
+
+        Log::info('Jadwal dengan ID ' . $id . ' berhasil dihapus.');
+
+        return redirect()->route('dokter.jadwal')->with('success', 'Jadwal berhasil dihapus.');
     }
 }

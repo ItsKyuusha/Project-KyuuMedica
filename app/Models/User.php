@@ -50,11 +50,11 @@ class User extends Authenticatable
 
     // App\Models\User.php
 
+    // app/Models/User.php
     public function pasien()
     {
-        return $this->hasMany(Pasien::class);  // Satu user bisa memiliki banyak pasien
+        return $this->hasOne(Pasien::class, 'user_id');
     }
 
 
-    
 }

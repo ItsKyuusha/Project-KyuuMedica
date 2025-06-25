@@ -100,6 +100,24 @@
                 <p>Dashboard Dokter</p>
               </a>
             </li>
+            <li class="nav-item">
+              <a href="{{ route('dokter.jadwal') }}" class="nav-link {{ request()->routeIs('dokter.jadwal') ? 'active' : '' }}">
+                <i class="nav-icon fas fa-home"></i>
+                <p>Jadwal Dokter</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ route('dokter.jadwal.hari_ini') }}" class="nav-link {{ request()->routeIs('dokter.jadwal.hari_ini') ? 'active' : '' }}">
+                <i class="nav-icon fas fa-home"></i>
+                <p>Input Pemeriksaan</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ route('dokter.profil') }}" class="nav-link {{ request()->routeIs('dokter.profil') ? 'active' : '' }}">
+                <i class="nav-icon fas fa-home"></i>
+                <p>Update Profil</p>
+              </a>
+            </li>
           @endif
 
           {{-- Pasien --}}
@@ -108,6 +126,18 @@
               <a href="{{ route('pasien.dashboard') }}" class="nav-link {{ request()->routeIs('pasien.dashboard') ? 'active' : '' }}">
                 <i class="nav-icon fas fa-home"></i>
                 <p>Dashboard Pasien</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ route('pasien.jadwal.semua') }}" class="nav-link {{ request()->routeIs('pasien.jadwal.semua') ? 'active' : '' }}">
+                <i class="nav-icon fas fa-home"></i>
+                <p>Jadwal Poli</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ route('pasien.daftar') }}" class="nav-link {{ request()->routeIs('pasien.daftar') ? 'active' : '' }}">
+                <i class="nav-icon fas fa-home"></i>
+                <p>Daftar ke Poli</p>
               </a>
             </li>
           @endif
