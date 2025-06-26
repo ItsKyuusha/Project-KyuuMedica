@@ -15,7 +15,7 @@ use Carbon\Carbon;
 
 class PemeriksaanController extends Controller
 {
-        // Menampilkan daftar pasien yang terdaftar hari ini dengan fitur skip antrian
+    // Menampilkan daftar pasien yang terdaftar hari ini dengan fitur skip antrian
 public function hariIni()
 {
     $dokter = Auth::user()->dokter;
@@ -40,32 +40,32 @@ public function hariIni()
             ->filter(fn($d) => $d->created_at->isToday())
             ->values();
 
-        // Isi nomor antrian awal jika belum ada di session
         foreach ($daftarHariIni as $i => $item) {
             if (!isset($nomorAntrian[$item->id])) {
                 $nomorAntrian[$item->id] = $i + 1;
             }
         }
 
-        // Tandai skip dari session
         $daftarHariIni = $daftarHariIni->map(function ($item) use ($skipCounts) {
             $item->skip = $skipCounts[$item->id] ?? 0;
             return $item;
         });
 
-        // Pasien belum diperiksa: normal dulu, lalu yang skip
         $normal = $daftarHariIni->filter(fn($d) => !$d->periksa && $d->skip == 0)->sortBy('created_at')->values();
         $skipped = $daftarHariIni->filter(fn($d) => !$d->periksa && $d->skip > 0)->sortBy('created_at')->values();
         $final = $normal->concat($skipped);
 
+        $sudahDiperiksa = $daftarHariIni->filter(fn($d) => $d->periksa)->values();
+
+        // Simpan ke properti untuk digunakan di view
         $jadwal->daftarPolisFiltered = $final;
+        $jadwal->daftarPolisSudah = $sudahDiperiksa;
     }
 
-    session()->put('nomor_antrian', $nomorAntrian); // simpan ke session
+    session()->put('nomor_antrian', $nomorAntrian);
 
     return view('dokter.jadwal_hari_ini', compact('jadwals', 'nomorAntrian'));
 }
-
 
     // Menampilkan form pemeriksaan pasien
     public function show($id_daftar_poli)

@@ -15,11 +15,10 @@
 
     @foreach ($jadwals as $jadwal)
         @php
-            $daftarHariIni = $jadwal->daftarPolisFiltered;
-
-            $antrianBelum = $daftarHariIni->filter(fn($d) => !$d->periksa)->values();
-            $antrianSudah = $daftarHariIni->filter(fn($d) => $d->periksa)->values();
-
+            $antrianBelum = $jadwal->daftarPolisFiltered;
+            $antrianSudah = $jadwal->daftarPolisSudah ?? collect();
+        @endphp
+        @php
             $antrianBelumTidakSkip = $antrianBelum->filter(fn($d) => $d->skip == 0)->values();
         @endphp
 
