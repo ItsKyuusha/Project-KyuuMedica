@@ -21,7 +21,7 @@
   <!-- Toastr CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 
-  @stack('styles')
+  @stack('styles') <!-- Tempat untuk menambahkan CSS tambahan -->
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
@@ -34,18 +34,16 @@
       </li>
     </ul>
 
-  <ul class="navbar-nav ml-auto">
-    <li class="nav-item">
-      <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 d-flex align-items-center" data-toggle="modal" data-target="#logoutModal">
-        <i class="fas fa-user mr-2"></i>
-        <span>
-          {{ Auth::user()->nama ?? 'Guest' }} 
-          ({{ Auth::user()->role ?? 'No Role' }})
-        </span>
-        <i class="fas fa-sign-out-alt ml-2"></i>
-      </button>
-    </li>
-  </ul>
+    <ul class="navbar-nav ml-auto">
+      <li class="nav-item">
+        <button type="button" class="btn btn-danger btn-sm rounded px-4 d-flex align-items-center" data-toggle="modal" data-target="#logoutModal">
+          <span>
+            {{ Auth::user()->nama ?? 'Guest' }} 
+          </span>
+          <i class="fas fa-sign-out-alt ml-2"></i>
+        </button>
+      </li>
+    </ul>
   </nav>
 
   <!-- Sidebar -->
@@ -92,6 +90,7 @@
             </a>
           </li>
           @endif
+
           {{-- Dokter --}}
           @if(Auth::user() && Auth::user()->role === 'dokter')
             <li class="nav-item">
@@ -102,19 +101,19 @@
             </li>
             <li class="nav-item">
               <a href="{{ route('dokter.jadwal') }}" class="nav-link {{ request()->routeIs('dokter.jadwal') ? 'active' : '' }}">
-                <i class="nav-icon fas fa-home"></i>
+                <i class="nav-icon fas fa-calendar"></i>
                 <p>Jadwal Dokter</p>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ route('dokter.jadwal.hari_ini') }}" class="nav-link {{ request()->routeIs('dokter.jadwal.hari_ini') ? 'active' : '' }}">
-                <i class="nav-icon fas fa-home"></i>
+                <i class="nav-icon fas fa-file-medical"></i>
                 <p>Input Pemeriksaan</p>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ route('dokter.profil') }}" class="nav-link {{ request()->routeIs('dokter.profil') ? 'active' : '' }}">
-                <i class="nav-icon fas fa-home"></i>
+                <i class="nav-icon fas fa-user"></i>
                 <p>Update Profil</p>
               </a>
             </li>
@@ -130,13 +129,13 @@
             </li>
             <li class="nav-item">
               <a href="{{ route('pasien.jadwal.semua') }}" class="nav-link {{ request()->routeIs('pasien.jadwal.semua') ? 'active' : '' }}">
-                <i class="nav-icon fas fa-home"></i>
+                <i class="nav-icon fas fa-calendar"></i>
                 <p>Jadwal Poli</p>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ route('pasien.daftar') }}" class="nav-link {{ request()->routeIs('pasien.daftar') ? 'active' : '' }}">
-                <i class="nav-icon fas fa-home"></i>
+                <i class="nav-icon fas fa-clipboard"></i>
                 <p>Daftar ke Poli</p>
               </a>
             </li>
@@ -148,10 +147,10 @@
 
   <!-- Content Wrapper -->
   <div class="content-wrapper">
-    <!-- Page header -->
     <div class="content-header">
       <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center">
+          <!-- Header Section (can be customized) -->
         </div>
       </div>
     </div>
@@ -175,7 +174,7 @@
 <!-- AdminLTE -->
 <script src="{{ asset('AdminLTE/dist/js/adminlte.min.js') }}"></script>
 
-@stack('scripts')
+@stack('scripts') <!-- Tempat untuk menambahkan JS tambahan -->
 
 <!-- Toastr JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
