@@ -12,7 +12,7 @@
             <td>{{ \Carbon\Carbon::parse($periksa->tgl_periksa)->format('d-m-Y') }}</td>
         </tr>
         <tr>
-            <th>Catatan Pemeriksaan</th>
+            <th>Catatan Pemeriksaan & Catatan Obat</th>
             <td>{{ $periksa->catatan }}</td>
         </tr>
         <tr>

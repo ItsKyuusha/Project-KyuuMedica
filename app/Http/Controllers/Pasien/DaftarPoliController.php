@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pasien;
 use App\Http\Controllers\Controller;
 use App\Models\DaftarPoli;
 use App\Models\JadwalPeriksa;
+use App\Models\Poli;
 use Illuminate\Http\Request;
 
 class DaftarPoliController extends Controller
@@ -17,7 +18,7 @@ class DaftarPoliController extends Controller
     }
     
     // Tampilkan halaman daftar jadwal & status pendaftaran pasien hari ini
-    public function showForm()
+    public function showForm(Request $request)
     {
         $pasien = auth()->user()->pasien;
 
@@ -26,10 +27,20 @@ class DaftarPoliController extends Controller
                 ->withErrors(['message' => 'Data pasien belum lengkap, silakan hubungi admin.']);
         }
 
-        // Ambil jadwal aktif
-        $jadwals = JadwalPeriksa::with('dokter.poli')->where('status', 'aktif')->get();
+        $idPoli = $request->query('poli');
+        
+        $jadwals = JadwalPeriksa::with('dokter.poli')
+            ->where('status', 'aktif')
+            ->when($idPoli, function ($query) use ($idPoli) {
+                $query->whereHas('dokter', function ($q) use ($idPoli) {
+                    $q->where('id_poli', $idPoli);
+                });
+            })
+            ->get();
 
-        return view('pasien.daftar', compact('jadwals', 'pasien'));
+        $polis = Poli::all();
+
+        return view('pasien.daftar', compact('jadwals', 'pasien', 'polis', 'idPoli'));
     }
 
     // Proses pendaftaran pasien

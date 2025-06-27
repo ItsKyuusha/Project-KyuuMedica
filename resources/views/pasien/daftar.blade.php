@@ -24,6 +24,25 @@
     </div>
     @endif
 
+    <form method="GET" action="{{ route('pasien.daftar') }}" class="mb-3">
+    <div class="form-row align-items-end">
+        <div class="col-md-4">
+            <label for="poli">Pilih Poli</label>
+            <select name="poli" id="poli" class="form-control">
+                <option value="">-- Pilih Poli --</option>
+                @foreach ($polis as $poli)
+                    <option value="{{ $poli->id }}" {{ (int) old('poli', $idPoli) === $poli->id ? 'selected' : '' }}>
+                        {{ $poli->nama_poli }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary">Pilih</button>
+        </div>
+    </div>
+</form>
+
     <table class="table table-bordered">
         <thead>
             <tr>

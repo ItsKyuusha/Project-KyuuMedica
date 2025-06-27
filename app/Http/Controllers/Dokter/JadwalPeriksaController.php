@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\JadwalPeriksa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;  // Import Log
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class JadwalPeriksaController extends Controller
@@ -17,20 +17,10 @@ class JadwalPeriksaController extends Controller
     {
         $hariIni = Carbon::now()->locale('id')->isoFormat('dddd');
 
-        Log::debug('Memeriksa apakah hari ini adalah hari H periksa aktif untuk dokter: ' . $dokter->id);
-
-        $jadwalAktifHariIni = JadwalPeriksa::where('id_dokter', $dokter->id)
+        return JadwalPeriksa::where('id_dokter', $dokter->id)
             ->where('status', 'aktif')
             ->whereRaw('LOWER(hari) = ?', [strtolower($hariIni)])
-            ->first();
-
-        if ($jadwalAktifHariIni) {
-            Log::debug('Jadwal aktif hari ini ditemukan: ' . $jadwalAktifHariIni);
-        } else {
-            Log::debug('Tidak ada jadwal aktif untuk hari ini.');
-        }
-
-        return $jadwalAktifHariIni !== null;
+            ->exists();
     }
 
     public function index()
@@ -47,32 +37,71 @@ class JadwalPeriksaController extends Controller
 
         $hariIni = Carbon::now()->locale('id')->isoFormat('dddd');
         $isHariH = $this->isHariHPeriksaAktif($dokter);
-
-        // Add $daftarHari to the view data
         $daftarHari = self::$daftarHari;
 
         return view('dokter.jadwal', compact('jadwals', 'isHariH', 'hariIni', 'daftarHari'));
     }
+
+    public function store(Request $request)
+{
+    $dokter = Auth::user()->dokter;
+
+    if (!$dokter) {
+        Log::error('Akun ini belum dikaitkan dengan data dokter.');
+        return redirect()->back()->with('error', 'Akun ini belum dikaitkan dengan data dokter.');
+    }
+
+    // Validasi data
+    $request->validate([
+        'hari' => 'required|string|in:' . implode(',', self::$daftarHari),
+        'jam_mulai' => 'required|date_format:H:i',
+        'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+        'status' => 'required|in:aktif,nonaktif',
+    ]);
+
+    $hariIni = Carbon::now()->locale('id')->isoFormat('dddd');
+    $isHariIniAktif = $this->isHariHPeriksaAktif($dokter);
+
+    // Jika hari ini jadwalnya sudah aktif, tidak boleh menambahkan jadwal aktif lain di hari selain hari ini
+    if ($isHariIniAktif && strtolower($request->hari) !== strtolower($hariIni) && $request->status === 'aktif') {
+        Log::warning('Tidak dapat menambahkan jadwal aktif untuk hari lain, karena hari ini sudah ada jadwal aktif.');
+        return redirect()->route('dokter.jadwal')->with('error', 'Hari ini sudah ada jadwal aktif. Anda hanya dapat menambahkan jadwal aktif untuk hari ini.');
+    }
+
+    // Jika status aktif, nonaktifkan jadwal lain terlebih dahulu
+    if ($request->status === 'aktif') {
+        JadwalPeriksa::where('id_dokter', $dokter->id)->update(['status' => 'nonaktif']);
+    }
+
+    // Simpan data jadwal baru
+    JadwalPeriksa::create([
+        'id_dokter' => $dokter->id,
+        'hari' => ucfirst(strtolower($request->hari)),
+        'jam_mulai' => $request->jam_mulai,
+        'jam_selesai' => $request->jam_selesai,
+        'status' => $request->status,
+    ]);
+
+    Log::info('Jadwal baru berhasil ditambahkan untuk dokter ID: ' . $dokter->id);
+
+    return redirect()->route('dokter.jadwal')->with('success', 'Jadwal baru berhasil ditambahkan.');
+}
+
 
     public function update(Request $request, $id)
     {
         $dokter = Auth::user()->dokter;
 
         if (!$dokter) {
-            Log::error('Akun ini belum dikaitkan dengan data dokter.');
             return redirect()->back()->with('error', 'Akun ini belum dikaitkan dengan data dokter.');
         }
 
         $jadwal = JadwalPeriksa::findOrFail($id);
 
         if ($jadwal->id_dokter != $dokter->id) {
-            Log::warning('Dokter mencoba mengakses jadwal yang bukan miliknya.');
             abort(403, 'Akses tidak diizinkan.');
         }
 
-        Log::debug('Memperbarui jadwal dengan ID: ' . $id);
-
-        // Validasi data
         $request->validate([
             'hari' => 'required|string|in:' . implode(',', self::$daftarHari),
             'jam_mulai' => 'required|date_format:H:i',
@@ -80,30 +109,32 @@ class JadwalPeriksaController extends Controller
             'status' => 'required|in:aktif,nonaktif',
         ]);
 
-        // Cek apakah hari ini jadwalnya aktif
-        $isHariIniAktif = $this->isHariHPeriksaAktif($dokter);  
         $hariIni = Carbon::now()->locale('id')->isoFormat('dddd');
+        $isHariIniAktif = strtolower($jadwal->hari) === strtolower($hariIni) && $jadwal->status === 'aktif';
 
-        // Jika hari ini jadwalnya aktif, hanya bisa set status aktif untuk jadwal hari ini
-        if ($isHariIniAktif && strtolower($jadwal->hari) !== strtolower($hariIni) && $request->status === 'aktif') {
-            Log::warning('Tidak dapat mengubah status jadwal yang bukan hari ini menjadi aktif, karena hari ini sudah ada jadwal aktif.');
+        // Tidak boleh aktifkan hari lain jika sudah ada yang aktif hari ini
+        if ($request->status === 'aktif' && !$isHariIniAktif && $this->isHariHPeriksaAktif($dokter)) {
             return redirect()->route('dokter.jadwal')->with('error', 'Jadwal hari ini sudah aktif. Anda hanya dapat mengubah status aktif pada jadwal hari ini.');
         }
 
-        // Jika status aktif, nonaktifkan jadwal lain
+        // Jika akan mengaktifkan jadwal lain, nonaktifkan semua
         if ($request->status === 'aktif') {
-            Log::debug('Menonaktifkan jadwal lain sebelum memperbarui jadwal aktif.');
             JadwalPeriksa::where('id_dokter', $dokter->id)->update(['status' => 'nonaktif']);
         }
 
-        $jadwal->update([
-            'hari' => ucfirst(strtolower($request->hari)),
-            'jam_mulai' => $request->jam_mulai,
-            'jam_selesai' => $request->jam_selesai,
-            'status' => $request->status,
-        ]);
-
-        Log::info('Jadwal dengan ID ' . $id . ' berhasil diperbarui.');
+        // Jika hari ini aktif, jangan ubah hari/jam
+        if ($isHariIniAktif) {
+            $jadwal->update([
+                'status' => $request->status
+            ]);
+        } else {
+            $jadwal->update([
+                'hari' => ucfirst(strtolower($request->hari)),
+                'jam_mulai' => $request->jam_mulai,
+                'jam_selesai' => $request->jam_selesai,
+                'status' => $request->status,
+            ]);
+        }
 
         return redirect()->route('dokter.jadwal')->with('success', 'Jadwal berhasil diperbarui.');
     }
@@ -113,27 +144,18 @@ class JadwalPeriksaController extends Controller
         $dokter = Auth::user()->dokter;
 
         if (!$dokter) {
-            Log::error('Akun ini belum dikaitkan dengan data dokter.');
             return redirect()->back()->with('error', 'Akun ini belum dikaitkan dengan data dokter.');
         }
 
         $jadwal = JadwalPeriksa::findOrFail($id);
 
-        if ($jadwal->id_dokter != $dokter->id) {
-            Log::warning('Dokter mencoba mengakses jadwal yang bukan miliknya.');
-            abort(403, 'Akses tidak diizinkan.');
-        }
-
         $hariIni = Carbon::now()->locale('id')->isoFormat('dddd');
 
         if ($jadwal->status == 'aktif' && strtolower($jadwal->hari) === strtolower($hariIni)) {
-            Log::warning('Jadwal aktif hari ini tidak dapat dihapus: ' . $jadwal->id);
             return redirect()->route('dokter.jadwal')->with('error', 'Jadwal aktif hari ini tidak dapat dihapus.');
         }
 
         $jadwal->delete();
-
-        Log::info('Jadwal dengan ID ' . $id . ' berhasil dihapus.');
 
         return redirect()->route('dokter.jadwal')->with('success', 'Jadwal berhasil dihapus.');
     }

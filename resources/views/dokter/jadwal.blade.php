@@ -76,6 +76,11 @@
                                     </button>
                                 </div>
                                 <div class="modal-body">
+                                    @php
+                                        $hariIni = \Carbon\Carbon::now()->locale('id')->isoFormat('dddd');
+                                        $isHariIniAktif = strtolower($jadwal->hari) === strtolower($hariIni) && $jadwal->status === 'aktif';
+                                    @endphp
+
                                     @if ($errors->any() && session('edit_jadwal_id') == $jadwal->id)
                                         <div class="alert alert-danger">
                                             <ul>
@@ -89,47 +94,49 @@
                                     <div class="form-group">
                                         <label for="hari{{ $jadwal->id }}">Hari</label>
                                         <select name="hari" id="hari{{ $jadwal->id }}" class="form-control"
-                                            {{ ($isHariIni && $jadwal->status == 'aktif') ? 'disabled' : '' }}>
-                                            @foreach(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'] as $hari)
-                                                <option value="{{ $hari }}"
-                                                    {{ old('hari', $jadwal->hari) == $hari ? 'selected' : '' }}>
+                                            {{ $isHariIniAktif ? 'disabled' : '' }}>
+                                            @foreach ($daftarHari as $hari)
+                                                <option value="{{ $hari }}" {{ old('hari', $jadwal->hari) == $hari ? 'selected' : '' }}>
                                                     {{ $hari }}
                                                 </option>
                                             @endforeach
                                         </select>
+                                        @if ($isHariIniAktif)
+                                            <input type="hidden" name="hari" value="{{ $jadwal->hari }}">
+                                        @endif
                                     </div>
+
                                     <div class="form-group">
                                         <label for="jam_mulai{{ $jadwal->id }}">Jam Mulai</label>
                                         <input type="time" name="jam_mulai" class="form-control"
                                             value="{{ old('jam_mulai', \Carbon\Carbon::createFromFormat('H:i:s', $jadwal->jam_mulai)->format('H:i')) }}"
-                                            required {{ ($isHariIni && $jadwal->status == 'aktif') ? 'readonly' : '' }}>
+                                            required {{ $isHariIniAktif ? 'readonly' : '' }}>
                                     </div>
+
                                     <div class="form-group">
                                         <label for="jam_selesai{{ $jadwal->id }}">Jam Selesai</label>
                                         <input type="time" name="jam_selesai" class="form-control"
                                             value="{{ old('jam_selesai', \Carbon\Carbon::createFromFormat('H:i:s', $jadwal->jam_selesai)->format('H:i')) }}"
-                                            required {{ ($isHariIni && $jadwal->status == 'aktif') ? 'readonly' : '' }}>
+                                            required {{ $isHariIniAktif ? 'readonly' : '' }}>
                                     </div>
+
                                     <div class="form-group">
                                         <label>Status</label>
-                                        <select name="status" class="form-control"
-                                            {{ ($isHariIni && $jadwal->status == 'aktif') ? 'disabled' : '' }}>
+                                        <select name="status" class="form-control" required>
                                             <option value="aktif" {{ old('status', $jadwal->status) == 'aktif' ? 'selected' : '' }}>Aktif</option>
                                             <option value="nonaktif" {{ old('status', $jadwal->status) == 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
                                         </select>
                                     </div>
 
-                                    @if($isHariIni && $jadwal->status == 'aktif')
+                                    @if($isHariIniAktif)
                                         <div class="alert alert-info">
-                                            Jadwal aktif hari ini tidak dapat diubah.
+                                            Jadwal aktif hari ini hanya dapat mengubah status, tidak bisa ubah hari atau jam.
                                         </div>
                                     @endif
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-                                    @if(!($isHariIni && $jadwal->status == 'aktif'))
-                                        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-                                    @endif
+                                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
                                 </div>
                             </div>
                         </form>
