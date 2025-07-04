@@ -6,7 +6,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class DaftarPoli extends Model
 {
-    protected $fillable = ['id_pasien', 'id_jadwal', 'keluhan'];
+    protected $fillable = ['id_pasien', 'id_jadwal', 'keluhan', 'nama_pasien', 'no_rm'];
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if ($model->id_pasien) {
+                $pasien = Pasien::find($model->id_pasien);
+                if ($pasien) {
+                    $model->nama_pasien = $pasien->nama;
+                    $model->no_rm = $pasien->no_rm;
+                }
+            }
+        });
+    }
 
     public function pasien()
     {

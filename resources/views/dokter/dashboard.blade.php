@@ -70,7 +70,7 @@
                 <tbody>
                     @foreach ($daftarPolis as $daftar)
                         <tr>
-                            <td>{{ $daftar->pasien->nama }}</td>
+                            <td>{{ $daftar->pasien?->nama ?? $daftar->nama_pasien }}</td>
                             <td>{{ $daftar->keluhan }}</td>
                             <td>
                                 {{ $daftar->periksa ? 'Sudah Diperiksa' : 'Belum Diperiksa' }}

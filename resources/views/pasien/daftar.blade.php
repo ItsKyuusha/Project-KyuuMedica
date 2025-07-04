@@ -24,25 +24,35 @@
     </div>
     @endif
 
+    {{-- Form Pilih Poli --}}
     <form method="GET" action="{{ route('pasien.daftar') }}" class="mb-3">
-    <div class="form-row align-items-end">
-        <div class="col-md-4">
-            <label for="poli">Pilih Poli</label>
-            <select name="poli" id="poli" class="form-control">
-                <option value="">-- Pilih Poli --</option>
-                @foreach ($polis as $poli)
-                    <option value="{{ $poli->id }}" {{ (int) old('poli', $idPoli) === $poli->id ? 'selected' : '' }}>
-                        {{ $poli->nama_poli }}
-                    </option>
-                @endforeach
-            </select>
+        <div class="form-row align-items-end">
+            <div class="col-md-4">
+                <label for="poli">Pilih Poli</label>
+                <select name="poli" id="poli" class="form-control">
+                    <option value="">-- Pilih Poli --</option>
+                    @foreach ($polis as $poli)
+                        <option value="{{ $poli->id }}" {{ (int) old('poli', $idPoli) === $poli->id ? 'selected' : '' }}>
+                            {{ $poli->nama_poli }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary">Pilih</button>
+            </div>
         </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary">Pilih</button>
-        </div>
-    </div>
-</form>
+    </form>
 
+    {{-- Tampilkan info jika poli belum dipilih --}}
+    @if (!$idPoli)
+        <div class="alert alert-info">
+            Silakan pilih poli terlebih dahulu untuk melihat jadwal pemeriksaan.
+        </div>
+    @endif
+
+    {{-- Tampilkan jadwal hanya jika poli sudah dipilih --}}
+    @if ($idPoli)
     <table class="table table-bordered">
         <thead>
             <tr>
@@ -74,7 +84,6 @@
                         </button>
                     @elseif ($pendaftaran && !$pendaftaran->periksa)
                         @php
-                            // Nomor antrian berdasarkan urutan daftar hari ini
                             $noAntrian = \App\Models\DaftarPoli::where('id_jadwal', $item->id)
                                 ->whereDate('created_at', now()->toDateString())
                                 ->orderBy('created_at')
@@ -109,7 +118,6 @@
                             <div class="modal-body">
                                 <input type="hidden" name="id_pasien" value="{{ $pasien->id }}">
                                 <input type="hidden" name="id_jadwal" value="{{ $item->id }}">
-
                                 <div class="form-group">
                                     <label for="keluhan{{ $item->id }}">Keluhan</label>
                                     <textarea name="keluhan" id="keluhan{{ $item->id }}" class="form-control" rows="3">{{ old('keluhan') }}</textarea>
@@ -126,9 +134,10 @@
             @endforeach
         </tbody>
     </table>
+    @endif
 </div>
 
-{{-- Jika ada error dan last_modal_id, buka modal yang terkait --}}
+{{-- Jika ada error dan last_modal_id, buka modal terkait --}}
 @if ($errors->any() && session('last_modal_id'))
 <script>
     $(document).ready(function(){

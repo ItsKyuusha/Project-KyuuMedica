@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Pasien;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\DaftarPoli;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 
@@ -145,12 +146,37 @@ class PasienController extends Controller
 }
 
 
-    // Delete a patient
     public function destroy($id)
-    {
-        Pasien::destroy($id);
-        return redirect()->route('admin.pasien')->with('success', 'Pasien berhasil dihapus');
+{
+    DB::beginTransaction();
+
+    try {
+        $pasien = Pasien::with('user')->findOrFail($id);
+        $user = $pasien->user;
+
+        // Snapshot data sebelum relasi terputus
+        DaftarPoli::where('id_pasien', $pasien->id)->each(function ($dp) use ($pasien) {
+            $dp->update([
+                'nama_pasien' => $pasien->nama,
+                'no_rm' => $pasien->no_rm,
+                'id_pasien' => null
+            ]);
+        });
+
+        // Hapus data
+        $pasien->delete();
+        if ($user) {
+            $user->delete();
+        }
+
+        DB::commit();
+        return redirect()->route('admin.pasien')->with('success', 'Pasien berhasil dihapus dan riwayat disimpan.');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Gagal menghapus pasien: ' . $e->getMessage());
+        return redirect()->back()->with('error', 'Gagal menghapus data.');
     }
+}
 }
 
 

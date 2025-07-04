@@ -131,8 +131,8 @@
                                 @foreach ($antrianSudah as $daftar)
                                     <tr>
                                         <td>{{ $nomorAntrian[$daftar->id] ?? '-' }}</td>
-                                        <td>{{ $daftar->pasien->nama }}</td>
-                                        <td>{{ $daftar->pasien->no_rm }}</td>
+                                        <td>{{ $daftar->pasien?->nama ?? $daftar->nama_pasien }}</td>
+                                        <td>{{ $daftar->pasien?->no_rm ?? $daftar->no_rm }}</td>
                                         <td>
                                             <a href="{{ route('dokter.pemeriksaan.detail', $daftar->id) }}" class="btn btn-info btn-sm">Detail</a>
                                         </td>
